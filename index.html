@@ -271,6 +271,20 @@ map.on('load', function () {
   });
 });
 
+function getAddress() {
+  var search = '4213 NE Rodney Ave., Portland, OR 97211';
+  geocoder.setInput(search);
+  geocoder.query(search);
+  
+  geocoder.on('result', function(ev) {  
+    var coordinates = ev.result.geometry.coordinates;
+    map.getSource('single-point').setData(ev.result.geometry);
+    let coords = coordinates.toString();
+    getTaxlot(coords);
+    getZoning(coords);
+  });
+}
+
 // taxlot query
 const getTaxlot = (loc) => {
   var url = 'https://www.portlandmaps.com/arcgis/rest/services/Public/Taxlots/MapServer/0/query?where=1%3D1&text=&objectIds=&time=&geometry=' + loc + '&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&relationParam=&outFields=*&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=4326&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&returnDistinctValues=false&resultOffset=&resultRecordCount=&queryByDistance=&returnExtentsOnly=false&datumTransformation=&parameterValues=&rangeValues=&f=geojson';
