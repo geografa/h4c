@@ -55,26 +55,71 @@ map.on('load', function () {
     },
     "source-layer": "Historic_Landmarks-b53rkq",
     "layout": {
-      "icon-image": "town-hall-11",
-      "icon-allow-overlap": true
+      "icon-image": [
+        "step",
+        ["zoom"],
+        "circle-11",
+        10,
+        "town-hall-11",
+        22,
+        "town-hall-15"
+      ],
+      "icon-size": [
+        "interpolate",
+        ["exponential", 1.31],
+        ["zoom"],
+        0,
+        0.1,
+        12,
+        1,
+        22,
+        1
+      ],
+      "icon-allow-overlap": [
+        "step",
+        ["zoom"],
+        false,
+        12,
+        true,
+        22,
+        true
+      ]
     }
   });
 
   // add historic districts
-  // map.addLayer({
-  //   "id": "historic-districts",
-  //   "type": "fill",
-  //   "source": {
-  //     type: 'vector',
-  //     url: 'mapbox://grafa.0fp7an2z'
-  //   },
-  //   "source-layer": "Historic_Districts-az4s9b",
-  //   'layout': {},
-  //   'paint': {
-  //       'fill-color': '#7f99c4',
-  //       'fill-opacity': 0.8
-  //   }
-  // },'water');
+  map.addLayer({
+    "id": "historic-districts",
+    "type": "fill",
+    "source": {
+      type: 'vector',
+      url: 'mapbox://grafa.0fp7an2z'
+    },
+    "source-layer": "Historic_Districts-az4s9b",
+    'layout': {},
+    'paint': {
+      'fill-pattern': 'districts',
+      'fill-translate': [
+        0,
+        0
+      ],
+      'fill-opacity': [
+        'interpolate',
+          [
+            'linear'
+          ],
+          [
+            'zoom'
+          ],
+        0,
+        0,
+        14,
+        0.1,
+        22,
+        1
+      ]
+      }
+    }, 'water');
 
   // add conservation landmarks
   map.addLayer({
@@ -92,20 +137,73 @@ map.on('load', function () {
   });
 
   // add conservation districts
-  // map.addLayer({
-  //   "id": "conservation-districts",
-  //   "type": "fill",
-  //   "source": {
-  //     type: 'vector',
-  //     url: 'mapbox://grafa.c9vbzf3a'
-  //   },
-  //   "source-layer": "Conservation_Districts-4yul5g",
-  //   'layout': {},
-  //   'paint': {
-  //       'fill-color': '#c1ae7d',
-  //       'fill-opacity': 0.8
-  //   }
-  // },'water');
+  map.addLayer({
+    "id": "conservation-districts",
+    "type": "fill",
+    "source": {
+      type: 'vector',
+      url: 'mapbox://grafa.c9vbzf3a'
+    },
+    "source-layer": "Conservation_Districts-4yul5g",
+    'layout': {},
+    'paint': {
+      'fill-pattern': 'districts',
+      'fill-translate': [
+        0,
+        0
+      ],
+      'fill-opacity': [
+        'interpolate',
+          [
+            'linear'
+          ],
+          [
+            'zoom'
+          ],
+        0,
+        0,
+        14,
+        0.1,
+        22,
+        1
+      ]
+      }
+    }, 'water');
+  
+  
+  // add plan districts
+  map.addLayer({
+    'id': 'plan-districts',
+    'type': 'fill',
+    'source': {
+      type: 'vector',
+      url: 'mapbox://grafa.2wscp1hn'
+    },
+    'source-layer': 'Plan_Districts-8m8jxr',
+    'layout': {},
+    'paint': {
+      'fill-pattern': 'districts',
+      'fill-translate': [
+        0,
+        0
+      ],
+      'fill-opacity': [
+        'interpolate',
+          [
+            'linear'
+          ],
+          [
+            'zoom'
+          ],
+        0,
+        0,
+        14,
+        0.1,
+        22,
+        1
+      ]
+      }
+    });
   
   // add geocoder result
   map.addSource('single-point', {
@@ -175,8 +273,6 @@ map.on('load', function () {
 
 // taxlot query
 const getTaxlot = (loc) => {
-  // zoning
-  // var url = 'https://www.portlandmaps.com/arcgis/rest/services/Public/Zoning/MapServer/3/query?where=1%3D1&geometry=' + loc + '&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&outSR=4326&f=geojson';
   // taxlots
   var url = 'https://www.portlandmaps.com/arcgis/rest/services/Public/Taxlots/MapServer/0/query?where=1%3D1&text=&objectIds=&time=&geometry=' + loc + '&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&relationParam=&outFields=*&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=4326&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&returnDistinctValues=false&resultOffset=&resultRecordCount=&queryByDistance=&returnExtentsOnly=false&datumTransformation=&parameterValues=&rangeValues=&f=geojson';
   var req = new XMLHttpRequest();
@@ -215,7 +311,6 @@ const getZoning = (loc) => {
   req.open('GET', url, true);
   req.onload  = function() {
     var jsonResponse = req.response;
-    console.log(jsonResponse);
     if (map.getLayer('zoning')) {
       map.getSource('zoning').setData(jsonResponse);
       map.getSource('zoning-label').setData(jsonResponse);
