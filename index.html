@@ -4,8 +4,8 @@
   <meta charset='utf-8' />
   <title>Query TLIDs</title>
   <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.45.0/mapbox-gl.js'></script>
-    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.45.0/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.css' rel='stylesheet' />
     <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v2.3.0/mapbox-gl-geocoder.min.js'></script>
     <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v2.3.0/mapbox-gl-geocoder.css' type='text/css' />
   <style>
@@ -15,7 +15,6 @@
       min-width:50%;
       margin-left:25%;
   }
-
   </style>
 </head>
 <body>
@@ -33,7 +32,8 @@ var map = new mapboxgl.Map({
   container: 'map',
   style: 'mapbox://styles/grafa/cjngi136g41ia2sr2wkfuko46',
   zoom: 14,
-  center: [-122.66497032017605,45.55411587421071]
+  center: [-122.66497032017605,45.55411587421071],
+  pitch: 40
 });
 
 var geocoder = new MapboxGeocoder({
@@ -43,6 +43,7 @@ var geocoder = new MapboxGeocoder({
 map.addControl(geocoder);
 
 map.on('load', function () {
+  // add historic landmarks
   map.addLayer({
     "id": "historic-landmarks",
     "type": "symbol",
@@ -53,13 +54,25 @@ map.on('load', function () {
     "source-layer": "Historic_Landmarks-b53rkq",
     "layout": {
       "icon-image": "town-hall-11",
-      "icon-allow-overlap": true,
-      // "text-field": "{title}",
-      // "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-      // "text-offset": [0, 0.6],
-      // "text-anchor": "top"
+      "icon-allow-overlap": true
     }
   });
+
+  // add conservation landmarks
+  map.addLayer({
+    "id": "conservation-landmarks",
+    "type": "symbol",
+    "source": {
+      type: 'vector',
+      url: 'mapbox://grafa.3atpxqqc'
+    },
+    "source-layer": "Conservation_Landmarks-2j0ujw",
+    "layout": {
+      "icon-image": "monument-15",
+      "icon-allow-overlap": true
+    }
+  });
+
   map.addSource('single-point', {
       "type": "geojson",
       "data": {
@@ -73,8 +86,8 @@ map.on('load', function () {
       "source": "single-point",
       "type": "circle",
       "paint": {
-          "circle-radius": 10,
-          "circle-color": "#007cbf"
+          "circle-radius": 5,
+          "circle-color": "#f30"
       }
   });
 
@@ -84,12 +97,13 @@ map.on('load', function () {
         closeOnClick: false
     });
 
-    map.on('mouseenter', 'places', function(e) {
+    map.on('mouseenter', 'taxlots', function(e) {
         // Change the cursor style as a UI indicator.
         map.getCanvas().style.cursor = 'pointer';
 
         var coordinates = e.features[0].geometry.coordinates.slice();
-        var description = "FAR: " + e.features[0].properties.BLDGSQFT / e.features[0].properties.A_T_SQFT + '<br>Year built:' + e.features[0].properties.YEARBUILT;
+        var description = "FAR: " + e.features[0].properties.BLDGSQFT / e.features[0].properties.A_T_SQFT + 
+        '<br>Year built:' + e.features[0].properties.YEARBUILT;
 
         // Ensure that if the map is zoomed out such that multiple
         // copies of the feature are visible, the popup appears
@@ -105,33 +119,39 @@ map.on('load', function () {
             .addTo(map);
     });
 
-    map.on('mouseleave', 'places', function() {
+    map.on('mouseleave', 'taxlots', function() {
         map.getCanvas().style.cursor = '';
         popup.remove();
     });
 
   // Listen for the `result` event from the MapboxGeocoder that is triggered when a user
-  // makes a selection and add a symbol that matches the result.
+  // makes a selection and add a symbol that matches the result and then 
+  // add the taxlots.
   geocoder.on('result', function(ev) {
       var coordinates = ev.result.geometry.coordinates;
       map.getSource('single-point').setData(ev.result.geometry);
       let coords = coordinates.toString();
-      loadGeoJSON(coords);
+      getTaxlot(coords);
+      getZoning(coords);
   });
 });
 
-const loadGeoJSON = (loc) => {
+// taxlot query
+const getTaxlot = (loc) => {
+  // zoning
+  // var url = 'https://www.portlandmaps.com/arcgis/rest/services/Public/Zoning/MapServer/3/query?where=1%3D1&geometry=' + loc + '&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&outSR=4326&f=geojson';
+  // taxlots
   var url = 'https://www.portlandmaps.com/arcgis/rest/services/Public/Taxlots/MapServer/0/query?where=1%3D1&text=&objectIds=&time=&geometry=' + loc + '&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&relationParam=&outFields=*&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=4326&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&returnDistinctValues=false&resultOffset=&resultRecordCount=&queryByDistance=&returnExtentsOnly=false&datumTransformation=&parameterValues=&rangeValues=&f=geojson';
   var req = new XMLHttpRequest();
   req.responseType = 'json';
   req.open('GET', url, true);
   req.onload  = function() {
     var jsonResponse = req.response;
-    if (map.getLayer('places')) {
-      map.getSource('places').setData(jsonResponse);
+    if (map.getLayer('taxlots')) {
+      map.getSource('taxlots').setData(jsonResponse);
     } else {
       map.addLayer({
-      'id': 'places',
+      'id': 'taxlots',
       'type': 'fill',
       'source': {
         'type': 'geojson',
@@ -145,6 +165,56 @@ const loadGeoJSON = (loc) => {
     }, 'building');
     }
 
+  };
+  req.send();
+}
+
+// zoning query
+const getZoning = (loc) => {
+  // zoning
+  var url = 'https://www.portlandmaps.com/arcgis/rest/services/Public/Zoning/MapServer/3/query?where=1%3D1&geometry=' + loc + '&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&outSR=4326&f=geojson';
+  var req = new XMLHttpRequest();
+  req.responseType = 'json';
+  req.open('GET', url, true);
+  req.onload  = function() {
+    var jsonResponse = req.response;
+    console.log(jsonResponse);
+    if (map.getLayer('zoning')) {
+      map.getSource('zoning').setData(jsonResponse);
+      map.getSource('zoning-label').setData(jsonResponse);
+    } else {
+      // add zoning layer
+      map.addLayer({
+        'id': 'zoning',
+        'type': 'fill',
+        'source': {
+          'type': 'geojson',
+          'data': jsonResponse
+        },
+        'paint': {
+          'fill-color': '#088',
+          'fill-opacity': 0.25
+        }
+      }, 'building');
+      // add zoning label
+      map.addLayer({
+        'id': 'zoning-label',
+        'type': 'symbol',
+        'source': {
+          'type': 'geojson',
+          'data': jsonResponse
+        },
+        'layout': {
+          'text-field': '{CMP}',
+          'text-size': 24
+        },
+        'paint': {
+          'text-halo-color': '#fff',
+          'text-halo-width': 2,
+
+        }
+      }, 'building');
+    };
   };
   req.send();
 }
