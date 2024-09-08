@@ -1,367 +1,909 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset='utf-8' />
-  <title>Query TLIDs</title>
-  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js'></script>
-    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.css' rel='stylesheet' />
-    <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v2.3.0/mapbox-gl-geocoder.min.js'></script>
-    <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v2.3.0/mapbox-gl-geocoder.css' type='text/css' />
-  <style>
-  body { margin:0; padding:0; }
-  #map { position:absolute; top:0; bottom:0; width:100%; }
-  #geocoder-container > div {
-    min-width:50%;
-    margin-left:25%;
-  }
-  </style>
-</head>
-<body>
-<style>
-  .mapboxgl-popup {
-    max-width: 400px;
-    font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
-  }
-</style>
-<div id='map'></div>
-<script>
-mapboxgl.accessToken = 'pk.eyJ1IjoiZ3JhZmEiLCJhIjoiY2ptYjNtZWxnMDBrdDNwbnVicGJzOWg2NyJ9.9OulyCe3kEqMAXPbx1mKUA';
-var map = new mapboxgl.Map({
-  container: 'map',
-  style: 'mapbox://styles/grafa/cjngi136g41ia2sr2wkfuko46',
-  zoom: 14,
-  center: [-122.66497032017605,45.55411587421071],
-  pitch: 35,
-  // bearing: 350
-});
-
-var geocoder = new MapboxGeocoder({
-  accessToken: mapboxgl.accessToken,
-  zoom: 17,
-  placeholder: "Try: 3417 NE 11th Ave, Portland, OR 97212"
-});
-
-map.addControl(geocoder);
-
-map.on('load', function () {
-  // add historic landmarks
-  map.addLayer({
-    "id": "historic-landmarks",
-    "type": "symbol",
-    "source": {
-      type: 'vector',
-      url: 'mapbox://grafa.54cm2qrh'
-    },
-    "source-layer": "Historic_Landmarks-b53rkq",
-    "layout": {
-      "icon-image": [
-        "step",
-        ["zoom"],
-        "circle-11",
-        10,
-        "town-hall-11",
-        22,
-        "town-hall-15"
-      ],
-      "icon-size": [
-        "interpolate",
-        ["exponential", 1.31],
-        ["zoom"],
-        0,
-        0.1,
-        12,
-        1,
-        22,
-        1
-      ],
-      "icon-allow-overlap": [
-        "step",
-        ["zoom"],
-        false,
-        12,
-        true,
-        22,
-        true
-      ]
-    }
-  });
-
-  // add historic districts
-  map.addLayer({
-    "id": "historic-districts",
-    "type": "fill",
-    "source": {
-      type: 'vector',
-      url: 'mapbox://grafa.0fp7an2z'
-    },
-    "source-layer": "Historic_Districts-az4s9b",
-    'layout': {},
-    'paint': {
-      'fill-pattern': 'districts',
-      'fill-translate': [
-        0,
-        0
-      ],
-      'fill-opacity': [
-        'interpolate',
-          [
-            'linear'
-          ],
-          [
-            'zoom'
-          ],
-        0,
-        0,
-        14,
-        0.1,
-        22,
-        1
-      ]
+  <head>
+    <meta charset="utf-8" />
+    <title>Query TLIDs</title>
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <link
+      href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css"
+      rel="stylesheet"
+    />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
       }
-    }, 'building');
+      #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+      }
+      #geocoder-container > div {
+        min-width: 50%;
+        margin-left: 25%;
+      }
+      .mapboxgl-popup {
+        max-width: 400px;
+        font: 12px/20px "Helvetica Neue", Arial, Helvetica, sans-serif;
+      }
+    </style>
 
-  // add conservation landmarks
-  map.addLayer({
-    "id": "conservation-landmarks",
-    "type": "symbol",
-    "source": {
-      type: 'vector',
-      url: 'mapbox://grafa.3atpxqqc'
-    },
-    "source-layer": "Conservation_Landmarks-2j0ujw",
-    "layout": {
-      "icon-image": "monument-15",
-      "icon-allow-overlap": true
-    }
-  });
+    <!-- Load the `mapbox-gl-geocoder` plugin. -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css"
+      type="text/css"
+    />
+  </head>
+  <body>
+    <div id="map"></div>
+    <script>
+      mapboxgl.accessToken =
+        "pk.eyJ1IjoiZ3JhZmEiLCJhIjoiY2ptYjNtZWxnMDBrdDNwbnVicGJzOWg2NyJ9.9OulyCe3kEqMAXPbx1mKUA";
+      var map = new mapboxgl.Map({
+        container: "map",
+        style: "mapbox://styles/mapbox/standard",
+        zoom: 14,
+        center: [-122.66497032017605, 45.55411587421071],
+        pitch: 35,
+        hash: true,
+        // bearing: 350
+      });
 
-  // add conservation districts
-  map.addLayer({
-    "id": "conservation-districts",
-    "type": "fill",
-    "source": {
-      type: 'vector',
-      url: 'mapbox://grafa.c9vbzf3a'
-    },
-    "source-layer": "Conservation_Districts-4yul5g",
-    'layout': {},
-    'paint': {
-      'fill-pattern': 'districts',
-      'fill-translate': [
-        0,
-        0
-      ],
-      'fill-opacity': [
-        'interpolate',
-          [
-            'linear'
+      var geocoder = new MapboxGeocoder({
+        accessToken: mapboxgl.accessToken,
+        mapboxgl: mapboxgl,
+        // disable the default marker
+        marker: false,
+        types: "address",
+        proximity: "ip",
+        zoom: 17,
+        placeholder: "Try: 3417 NE 11th Ave, Portland, OR 97212",
+      });
+
+      map.addControl(geocoder, "top-left");
+
+      const baseZones = [
+        {
+          CMP: "CI1",
+          zone: "Campus Institutional 1 (CI1)",
+          description:
+            "Provides for the establishment and growth of large institutional campuses in residential neighborhoods.",
+          allowableUses: [
+            "education facilities",
+            "medical facilities",
+            "parks and open areas",
           ],
-          [
-            'zoom'
-          ],
-        0,
-        0,
-        14,
-        0.1,
-        22,
-        1
-      ]
-      }
-    }, 'building');
-  
-  
-  // add plan districts
-  map.addLayer({
-    'id': 'plan-districts',
-    'type': 'fill',
-    'source': {
-      type: 'vector',
-      url: 'mapbox://grafa.2wscp1hn'
-    },
-    'source-layer': 'Plan_Districts-8m8jxr',
-    'layout': {},
-    'paint': {
-      'fill-pattern': 'districts',
-      'fill-translate': [
-        0,
-        0
-      ],
-      'fill-opacity': [
-        'interpolate',
-          [
-            'linear'
-          ],
-          [
-            'zoom'
-          ],
-        0,
-        0,
-        14,
-        0.1,
-        22,
-        1
-      ]
-      }
-    },'building');
-  
-  // add geocoder result
-  map.addSource('single-point', {
-      "type": "geojson",
-      "data": {
-          "type": "FeatureCollection",
-          "features": []
-      }
-  });
-
-  map.addLayer({
-      "id": "point",
-      "source": "single-point",
-      "type": "circle",
-      "paint": {
-          "circle-radius": 5,
-          "circle-color": "#f30"
-      }
-  });
-
-  // Create a popup, but don't add it to the map yet.
-  var popup = new mapboxgl.Popup({
-      closeButton: false,
-      closeOnClick: false
-    });
-
-  map.on('mouseenter', 'taxlots', function(e) {
-      // Change the cursor style as a UI indicator.
-      map.getCanvas().style.cursor = 'pointer';
-
-      // variables for description in popup
-      var coordinates = e.features[0].geometry.coordinates.slice();
-      var description = '<strong>Building SQFT:</strong> ' + e.features[0].properties.BLDGSQFT  +
-      '<br><strong>Lot SQFT:</strong> ' + e.features[0].properties.A_T_SQFT + 
-      '<br><strong>FAR:</strong> ' + e.features[0].properties.BLDGSQFT / e.features[0].properties.A_T_SQFT;
-
-      // Ensure that if the map is zoomed out such that multiple
-      // copies of the feature are visible, the popup appears
-      // over the copy being pointed to.
-      while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
-          coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
-      }
-
-      // Populate the popup and set its coordinates
-      // based on the feature found.
-      popup.setLngLat(e.lngLat)
-          .setHTML(description)
-          .addTo(map);
-  });
-
-  map.on('mouseleave', 'taxlots', function() {
-      map.getCanvas().style.cursor = '';
-      popup.remove();
-  });
-
-  // Listen for the `result` event from the MapboxGeocoder that is triggered when a user
-  // makes a selection and add a symbol that matches the result and then 
-  // add the taxlots.
-  geocoder.on('result', function(ev) {
-    var coordinates = ev.result.geometry.coordinates;
-    map.getSource('single-point').setData(ev.result.geometry);
-    let coords = coordinates.toString();
-    getTaxlot(coords);
-    getZoning(coords);
-  });
-});
-
-function getAddress() {
-  var search = '4213 NE Rodney Ave., Portland, OR 97211';
-  geocoder.setInput(search);
-  geocoder.query(search);
-  
-  geocoder.on('result', function(ev) {  
-    var coordinates = ev.result.geometry.coordinates;
-    map.getSource('single-point').setData(ev.result.geometry);
-    let coords = coordinates.toString();
-    getTaxlot(coords);
-    getZoning(coords);
-  });
-}
-
-// taxlot query
-const getTaxlot = (loc) => {
-  var url = 'https://www.portlandmaps.com/arcgis/rest/services/Public/Taxlots/MapServer/0/query?where=1%3D1&text=&objectIds=&time=&geometry=' + loc + '&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&relationParam=&outFields=*&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=4326&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&returnDistinctValues=false&resultOffset=&resultRecordCount=&queryByDistance=&returnExtentsOnly=false&datumTransformation=&parameterValues=&rangeValues=&f=geojson';
-  var req = new XMLHttpRequest();
-  req.responseType = 'json';
-  req.open('GET', url, true);
-  req.onload  = function() {
-    var jsonResponse = req.response;
-    if (map.getLayer('taxlots')) {
-      map.getSource('taxlots').setData(jsonResponse);
-    } else {
-      map.addLayer({
-        'id': 'taxlots',
-        'type': 'fill',
-        'source': {
-          'type': 'geojson',
-          'data': jsonResponse
+          location:
+            "University of Portland, Reed College, Lewis and Clark University",
+          maxHeight: "75 feet",
+          FAR: "0.5:1",
+          FAR_factor: 0.5,
+          bonusProvisions: "Not eligible",
+          parkingRestrictions:
+            "Not required near transit or for fewer than 30 units. Requires approved Transportation Impact Analysis and Transportation Demand Management Plan.",
         },
-        'layout': {},
-        'paint': {
-          'fill-color': '#088',
-          'fill-opacity': 0.8
-        }
-      }, 'building');
-    }
-  };
-  req.send();
-}
-
-// zoning query
-const getZoning = (loc) => {
-  var url = 'https://www.portlandmaps.com/arcgis/rest/services/Public/Zoning/MapServer/3/query?where=1%3D1&geometry=' + loc + '&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&outSR=4326&f=geojson';
-  var req = new XMLHttpRequest();
-  req.responseType = 'json';
-  req.open('GET', url, true);
-  req.onload  = function() {
-    var jsonResponse = req.response;
-    if (map.getLayer('zoning')) {
-      map.getSource('zoning').setData(jsonResponse);
-      map.getSource('zoning-label').setData(jsonResponse);
-    } else {
-
-      // add zoning layer
-      map.addLayer({
-        'id': 'zoning',
-        'type': 'fill',
-        'source': {
-          'type': 'geojson',
-          'data': jsonResponse
+        {
+          CMP: "CI2",
+          zone: "Campus Institutional 2 (CI2)",
+          description:
+            "Supports the growth of urban institutional and medical campuses near centers or along commercial corridors.",
+          allowableUses: [
+            "education facilities",
+            "medical facilities",
+            "office space",
+            "retail sales and services",
+          ],
+          location:
+            "PCC Cascade, Legacy Emanuel Hospital, Providence Portland Hospital",
+          maxHeight: "150 feet",
+          FAR: "3:1",
+          FAR_factor: 3,
+          bonusProvisions: "Not eligible",
+          parkingRestrictions:
+            "Not required near transit or for fewer than 30 units. Requires approved Transportation Impact Analysis and Transportation Demand Management Plan.",
         },
-        'paint': {
-          'fill-color': '#088',
-          'fill-opacity': 0.25
-        }
-      }, 'water');
+        {
+          CMP: "CX",
+          zone: "Central Commercial (CX)",
+          description:
+            "High-density commercial zone for urban areas with intense, pedestrian-oriented development.",
+          allowableUses: [
+            "retail sales and services",
+            "office space",
+            "household living",
+            "institutional uses",
+          ],
+          location: "Central City, Gateway Regional Center",
+          maxHeight: "75'+, up to 460' in some areas",
+          FAR: "4:1 - 15:1",
+          FAR_factor: 4,
+          bonusProvisions: "Available in some areas for height/FAR increases",
+          parkingRestrictions:
+            "Not required near transit or for fewer than 30 units.",
+        },
+        {
+          CMP: "EX",
+          zone: "Central Employment (EX)",
+          description:
+            "Allows high-density commercial, light industrial, institutional, and residential uses near the Central City and Gateway.",
+          allowableUses: [
+            "manufacturing",
+            "warehouse",
+            "wholesale sales",
+            "residential",
+            "parks and open spaces",
+          ],
+          location: "Central City, Gateway",
+          maxHeight: "65'+, up to 225' in some areas",
+          FAR: "3:1 - 9:1",
+          FAR_factor: 3,
+          bonusProvisions: "Available for height/FAR increases",
+          parkingRestrictions:
+            "Not required near transit or for fewer than 30 units.",
+        },
+        {
+          CMP: "RX",
+          zone: "Central Residential (RX)",
+          description:
+            "High-density multi-dwelling zone allowing apartments and condominiums, often with retail or institutional uses.",
+          allowableUses: [
+            "household living",
+            "parks and open areas",
+            "limited ground-floor retail",
+          ],
+          location: "NE Broadway St., NE 99th Ave., Gateway",
+          maxHeight: "100 feet (9-10 stories)",
+          density: "100+ units per acre",
+          parkingRestrictions: {
+            "1-30 units": "0 spaces per unit",
+            "31-40 units": "0.2 spaces per unit",
+            "41-50 units": "0.25 spaces per unit",
+            "51+ units": "0.33 spaces per unit",
+          },
+        },
+        {
+          CMP: "CE",
+          zone: "Commercial Employment (CE)",
+          description:
+            "Medium-scale commercial and employment zone along corridors, emphasizing employment uses.",
+          allowableUses: [
+            "retail sales",
+            "office space",
+            "vehicle servicing",
+            "household living",
+          ],
+          location: "SE Powell, SE 82nd, SW Barbur",
+          maxHeight: "45 feet",
+          FAR: "2.5:1, up to 4:1 with bonuses",
+          FAR_factor: 2.5,
+          bonusProvisions: "Available for FAR increase",
+          parkingRestrictions:
+            "Not required near transit or for fewer than 30 units.",
+        },
+        {
+          CMP: "CM1",
+          zone: "Commercial Mixed Use 1 (CM1)",
+          description:
+            "Small-scale commercial mixed-use zone in lower-density residential areas and neighborhood corridors.",
+          allowableUses: [
+            "retail sales and services",
+            "office space",
+            "household living",
+            "institutional uses",
+          ],
+          location: "SE 72nd, N Fessenden, NE Fremont",
+          maxHeight: "35 feet",
+          FAR: "1.5:1, up to 2.5:1 with bonuses",
+          FAR_factor: 1.5,
+          bonusProvisions: "Available for FAR increase",
+          parkingRestrictions:
+            "Not required near transit or for fewer than 30 units.",
+        },
+        {
+          CMP: "CM2",
+          zone: "Commercial Mixed Use 2 (CM2)",
+          description:
+            "Medium-scale commercial mixed-use zone near centers and corridors, well-served by transit.",
+          allowableUses: [
+            "retail sales and services",
+            "office space",
+            "household living",
+            "vehicle repair",
+            "institutional uses",
+          ],
+          location: "NW 23rd, SE Foster, N Lombard, NE Sandy",
+          maxHeight: "45 feet, up to 55 feet with bonuses",
+          FAR: "2.5:1, up to 4:1 with bonuses",
+          FAR_factor: 2.5,
+          bonusProvisions: "Available for FAR increase",
+          parkingRestrictions:
+            "Not required near transit or for fewer than 30 units.",
+        },
+        {
+          CMP: "CM3",
+          zone: "Commercial Mixed Use 3 (CM3)",
+          description:
+            "Large-scale commercial mixed-use zone close to the Central City, civic corridors, and town centers.",
+          allowableUses: [
+            "retail sales and services",
+            "office space",
+            "household living",
+            "vehicle repair",
+            "institutional uses",
+          ],
+          location: "N Interstate, NE MLK Jr., N Williams",
+          maxHeight: "65 feet, up to 75 feet with bonuses",
+          FAR: "3:1, up to 5:1 with bonuses",
+          FAR_factor: 3,
+          bonusProvisions: "Available for FAR increase",
+          parkingRestrictions:
+            "Not required near transit or for fewer than 30 units.",
+        },
+        {
+          CMP: "CR",
+          zone: "Commercial Residential (CR)",
+          description:
+            "Low-intensity zone for isolated sites in residential neighborhoods, allowing small-scale retail and services.",
+          allowableUses: [
+            "retail sales (≤ 5,000 ft²)",
+            "office (≤ 5,000 ft²)",
+            "parks",
+            "schools",
+            "religious institutions",
+          ],
+          location: "NE 15th, SE Clinton, NE Halsey, SE 20th",
+          maxHeight: "30 feet",
+          FAR: "1:1",
+          FAR_factor: 1,
+          bonusProvisions: "None",
+          parkingRestrictions:
+            "Not required near transit or for fewer than 30 units.",
+        },
+        {
+          CMP: "EG1",
+          zone: "General Employment 1 (EG1)",
+          description:
+            "Employment zone for smaller lots with high building coverage near transportation corridors.",
+          allowableUses: [
+            "manufacturing",
+            "warehouse",
+            "industrial services",
+            "parks",
+            "educational institutions",
+          ],
+          location: "SE 17th Ave., SE Gladstone St., NE 50th Ave.",
+          maxHeight: "45 feet",
+          FAR: "3:1",
+          FAR_factor: 3,
+          bonusProvisions: "None",
+          parkingRestrictions: "No specific parking restrictions.",
+        },
+        {
+          CMP: "EG2",
+          zone: "General Employment 2 (EG2)",
+          description:
+            "Employment zone for larger lots, with lower building coverage, typically further from the street.",
+          allowableUses: [
+            "manufacturing",
+            "warehouse",
+            "industrial services",
+            "parks",
+            "educational institutions",
+          ],
+          location: "SE 26th Ave., NE Airport Way, NE 82nd Ave.",
+          maxHeight: "Unlimited",
+          FAR: "3:1",
+          FAR_factor: 3,
+          bonusProvisions: "None",
+          parkingRestrictions: "No specific parking restrictions.",
+        },
+        {
+          CMP: "IG1",
+          zone: "General Industrial 1 (IG1)",
+          description:
+            "Industrial zone with smaller lots, high building coverage, and proximity to transportation.",
+          allowableUses: [
+            "manufacturing",
+            "warehouse",
+            "freight movement",
+            "parks",
+          ],
+          location: "Central Eastside, Portland Harbor",
+          maxHeight: "Unlimited",
+          FAR: "Unlimited",
+          FAR_factor: 0,
+          bonusProvisions: "None",
+          parkingRestrictions: "No specific parking restrictions.",
+        },
+        {
+          CMP: "IG2",
+          zone: "General Industrial 2 (IG2)",
+          description:
+            "Industrial zone for larger lots with lower building coverage, generally further from urban centers.",
+          allowableUses: [
+            "manufacturing",
+            "warehouse",
+            "freight movement",
+            "parks",
+          ],
+          location: "Columbia Corridor",
+          maxHeight: "Unlimited",
+          FAR: "Unlimited",
+          FAR_factor: 0,
+          bonusProvisions: "None",
+          parkingRestrictions: "No specific parking restrictions.",
+        },
+        {
+          CMP: "IH",
+          zone: "Heavy Industrial (IH)",
+          description:
+            "Heavy industrial zone allowing industries with greater environmental or aesthetic impact.",
+          allowableUses: [
+            "manufacturing",
+            "warehouse",
+            "freight movement",
+            "railroad yards",
+          ],
+          location: "Rivergate, Guild's Lake",
+          maxHeight: "Unlimited",
+          FAR: "Unlimited",
+          FAR_factor: 0,
+          bonusProvisions: "None",
+          parkingRestrictions: "No specific parking restrictions.",
+        },
+        {
+          CMP: "IR",
+          zone: "Institutional Residential (IR)",
+          description:
+            "A multi-use zone for institutional campuses and high-density residential developments, subject to impact mitigation review.",
+          allowableUses: ["education facilities", "household living"],
+          location:
+            "David Douglas High School, Jefferson High School, Wilson High School",
+          maxHeight: "75 feet, up to 100 feet near transit stations",
+          FAR: "2:1",
+          FAR_factor: 2,
+          bonusProvisions: "None",
+          parkingRestrictions:
+            "Parking requirements are established through an Impact Mitigation Plan.",
+        },
+        {
+          CMP: "OS",
+          zone: "Open Space (OS)",
+          description:
+            "Preserves and enhances public and private open, natural, and recreational areas.",
+          allowableUses: [
+            "parks",
+            "cemeteries",
+            "golf courses",
+            "recreational fields",
+          ],
+          location: "Caruthers Park, Laurelhurst Park, Essex Park",
+          maxHeight: "Varies by specific use",
+          FAR: "N/A",
+          FAR_factor: 0,
+          bonusProvisions: "None",
+          parkingRestrictions:
+            "Conditional use review required for certain accessory uses.",
+        },
+        {
+          CMP: "R10",
+          zone: "Residential 10,000 (R10)",
+          description:
+            "A single-dwelling zone allowing one lot per 10,000 ft².",
+          allowableUses: ["household living"],
+          location: "SE Manchester Pl., SW Fairmount Blvd., NE 148th Ave.",
+          maxHeight: "30 feet (2-3 stories)",
+          density: "1 lot per 10,000 ft²",
+          parkingRestrictions:
+            "No minimum parking required for residential uses.",
+        },
+        {
+          CMP: "R2.5",
+          zone: "Residential 2,500 (R2.5)",
+          description:
+            "A single-dwelling zone allowing one lot per 2,500 ft², including rowhouses and duplexes.",
+          allowableUses: ["household living"],
+          location: "SE Clinton St., NE Emerson St., SE Madison St.",
+          maxHeight: "35 feet (2-3 stories)",
+          density: "1 lot per 2,500 ft²",
+          parkingRestrictions:
+            "No minimum parking required for residential uses.",
+        },
+        {
+          CMP: "R20",
+          zone: "Residential 20,000 (R20)",
+          description:
+            "A low-density single-dwelling zone allowing one lot per 20,000 ft².",
+          allowableUses: ["household living"],
+          location: "SW Arnold St., SW Humphrey Blvd., NE Bryant St.",
+          maxHeight: "30 feet (2-3 stories)",
+          density: "1 lot per 20,000 ft²",
+          parkingRestrictions:
+            "No minimum parking required for residential uses.",
+        },
+        {
+          CMP: "R5",
+          zone: "Residential 5,000 (R5)",
+          description: "A single-dwelling zone allowing one lot per 5,000 ft².",
+          allowableUses: ["household living"],
+          location: "SE Lincoln St., NE Knott St., N Denver Ave.",
+          maxHeight: "30 feet (2-3 stories)",
+          density: "1 lot per 5,000 ft²",
+          parkingRestrictions:
+            "No minimum parking required for residential uses.",
+        },
+        {
+          CMP: "R7",
+          zone: "Residential 7,000 (R7)",
+          description: "A single-dwelling zone allowing one lot per 7,000 ft².",
+          allowableUses: ["household living"],
+          location: "SE Harold Ct., NE San Rafael St.",
+          maxHeight: "30 feet (2-3 stories)",
+          density: "1 lot per 7,000 ft²",
+          parkingRestrictions:
+            "No minimum parking required for residential uses.",
+        },
+        {
+          CMP: "RF",
+          zone: "Residential Farm/Forest (RF)",
+          description:
+            "A low-density residential zone, typically agricultural, allowing one lot per 87,120 ft² (2 acres).",
+          allowableUses: ["household living", "farm and forest uses"],
+          location: "NW Skyline Blvd., NE Marine Dr.",
+          maxHeight: "30 feet (2-3 stories)",
+          density: "1 lot per 87,120 ft²",
+          parkingRestrictions:
+            "No minimum parking required for residential uses.",
+        },
+        {
+          CMP: "RMP",
+          zone: "Residential Manufactured Dwelling Park (RMP)",
+          description:
+            "Allows for manufactured dwelling parks with four or more manufactured dwellings on a site.",
+          allowableUses: ["household living"],
+          location: "Scattered sites, especially in East Portland",
+          maxHeight: "35 feet",
+          density:
+            "29 units per acre, up to 43 units per acre with affordable housing bonus",
+          parkingRestrictions: "1 parking space per dwelling unit.",
+        },
+        {
+          CMP: "RM1",
+          zone: "Residential Multi-Dwelling 1 (RM1)",
+          description:
+            "Low-scale multi-dwelling zone near centers and corridors, with 1-3 story buildings.",
+          allowableUses: ["household living", "limited commercial"],
+          location: "Jade District, NE Killingsworth, outer SE Powell Blvd.",
+          maxHeight: "35 feet (3 stories)",
+          FAR: "1:1, up to 1.5:1 with bonuses",
+          FAR_factor: 1,
+          parkingRestrictions:
+            "No parking required for up to 30 units or near transit. Otherwise, 1 space per 2 units.",
+        },
+        {
+          CMP: "RM2",
+          zone: "Residential Multi-Dwelling 2 (RM2)",
+          description:
+            "Medium-scale multi-dwelling zone with 3-4 story buildings, providing transitions to lower-scale residential zones.",
+          allowableUses: ["household living", "limited commercial"],
+          location: "St. Johns, Hillsdale, SE Division St., N Lombard St.",
+          maxHeight: "45 feet (4 stories)",
+          FAR: "1.5:1, up to 2.25:1 with bonuses",
+          FAR_factor: 1.5,
+          parkingRestrictions:
+            "No parking required for up to 30 units or near transit. Otherwise, 1 space per 2 units.",
+        },
+        {
+          CMP: "RM3",
+          zone: "Residential Multi-Dwelling 3 (RM3)",
+          description:
+            "Medium- to high-density multi-dwelling zone with 3-6 story buildings near stations and corridors.",
+          allowableUses: ["household living", "limited commercial"],
+          location:
+            "Near N Interstate Ave., 148th Ave. light rail station, Northwest District, Gateway",
+          maxHeight: "65 feet (6 stories)",
+          FAR: "2:1, up to 3:1 with bonuses",
+          FAR_factor: 2,
+          parkingRestrictions:
+            "No parking required for up to 30 units or near transit. Otherwise, 1 space per 2 units.",
+        },
+        {
+          CMP: "RM4",
+          zone: "Residential Multi-Dwelling 4 (RM4)",
+          description:
+            "High-density multi-dwelling zone with mid- to high-rise buildings, typically 4-7 stories.",
+          allowableUses: ["household living", "limited commercial"],
+          location: "Northwest District, King's Hill, Lloyd District",
+          maxHeight: "75 - 100 feet (7 - 10 stories)",
+          FAR: "4:1, up to 6:1 with bonuses",
+          FAR_factor: 4,
+          parkingRestrictions:
+            "No parking required for up to 30 units or near transit. Otherwise, 1 space per 2 units.",
+        },
+      ];
 
-      // add zoning label
-      map.addLayer({
-        'id': 'zoning-label',
-        'type': 'symbol',
-        'source': {
-          'type': 'geojson',
-          'data': jsonResponse
-        },
-        'layout': {
-          'text-field': '{CMP}',
-          'text-size': 24
-        },
-        'paint': {
-          'text-halo-color': '#fff',
-          'text-halo-width': 2.75
-        }
-      }, 'place-islets-archipelago-aboriginal');
-    };
-  };
-  req.send();
-}
-</script>
-</body>
+      map.on("load", function () {
+        // add historic landmarks
+        map.addLayer({
+          id: "historic-landmarks",
+          type: "symbol",
+          source: {
+            type: "vector",
+            url: "mapbox://grafa.54cm2qrh",
+          },
+          "source-layer": "Historic_Landmarks-b53rkq",
+          layout: {
+            "icon-image": [
+              "step",
+              ["zoom"],
+              "circle-11",
+              10,
+              "town-hall-11",
+              22,
+              "town-hall-15",
+            ],
+            "icon-size": [
+              "interpolate",
+              ["exponential", 1.31],
+              ["zoom"],
+              0,
+              0.1,
+              12,
+              1,
+              22,
+              1,
+            ],
+            "icon-allow-overlap": ["step", ["zoom"], false, 12, true, 22, true],
+          },
+        });
+
+        // add historic districts
+        map.addLayer({
+          id: "historic-districts",
+          type: "fill",
+          slot: "middle",
+          source: {
+            type: "vector",
+            url: "mapbox://grafa.0fp7an2z",
+          },
+          "source-layer": "Historic_Districts-az4s9b",
+          layout: {},
+          paint: {
+            "fill-pattern": "districts",
+            "fill-translate": [0, 0],
+            "fill-opacity": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              0,
+              0,
+              14,
+              0.1,
+              22,
+              1,
+            ],
+          },
+        });
+
+        // add conservation landmarks
+        map.addLayer({
+          id: "conservation-landmarks",
+          type: "symbol",
+          source: {
+            type: "vector",
+            url: "mapbox://grafa.3atpxqqc",
+          },
+          "source-layer": "Conservation_Landmarks-2j0ujw",
+          layout: {
+            "icon-image": "monument-15",
+            "icon-allow-overlap": true,
+          },
+        });
+
+        // add conservation districts
+        map.addLayer({
+          id: "conservation-districts",
+          type: "fill",
+          slot: "middle",
+
+          source: {
+            type: "vector",
+            url: "mapbox://grafa.c9vbzf3a",
+          },
+          "source-layer": "Conservation_Districts-4yul5g",
+          layout: {},
+          paint: {
+            "fill-pattern": "districts",
+            "fill-translate": [0, 0],
+            "fill-opacity": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              0,
+              0,
+              14,
+              0.1,
+              22,
+              1,
+            ],
+          },
+        });
+
+        // add plan districts
+        map.addLayer({
+          id: "plan-districts",
+          type: "fill",
+          slot: "middle",
+          source: {
+            type: "vector",
+            url: "mapbox://grafa.2wscp1hn",
+          },
+          "source-layer": "Plan_Districts-8m8jxr",
+          layout: {},
+          paint: {
+            "fill-pattern": "districts",
+            "fill-translate": [0, 0],
+            "fill-opacity": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              0,
+              0,
+              14,
+              0.1,
+              22,
+              1,
+            ],
+          },
+        });
+
+        // add geocoder result
+        map.addSource("single-point", {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: [],
+          },
+        });
+
+        map.addLayer({
+          id: "point",
+          source: "single-point",
+          type: "circle",
+          paint: {
+            "circle-radius": 5,
+            "circle-color": "#f30",
+          },
+        });
+
+        // Create a popup, but don't add it to the map yet.
+        var popup = new mapboxgl.Popup({
+          closeButton: false,
+          closeOnClick: false,
+        });
+
+        map.on("mouseenter", "taxlots", function (e) {
+          // Change the cursor style as a UI indicator.
+          map.getCanvas().style.cursor = "pointer";
+
+          // variables for description in popup
+          var coordinates = e.features[0].geometry.coordinates.slice();
+          var description =
+            "<strong>Building SQFT:</strong> " +
+            e.features[0].properties.BLDGSQFT +
+            "<br><strong>Lot SQFT:</strong> " +
+            e.features[0].properties.A_T_SQFT +
+            "<br><strong>FAR:</strong> " +
+            // round     e.features[0].properties.A_T_SQFT to 2 decimal places
+            Math.round(
+              (e.features[0].properties.BLDGSQFT /
+                e.features[0].properties.A_T_SQFT) *
+                100
+            ) /
+              100;
+
+          // Ensure that if the map is zoomed out such that multiple
+          // copies of the feature are visible, the popup appears
+          // over the copy being pointed to.
+          while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+            coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+          }
+
+          // Populate the popup and set its coordinates
+          // based on the feature found.
+          popup.setLngLat(e.lngLat).setHTML(description).addTo(map);
+        });
+
+        map.on("mouseleave", "taxlots", function () {
+          map.getCanvas().style.cursor = "";
+          popup.remove();
+        });
+
+        // Listen for the `result` event from the MapboxGeocoder that is triggered when a user
+        // makes a selection and add a symbol that matches the result and then
+        // add the taxlots.
+        geocoder.on("result", function (ev) {
+          var coordinates = ev.result.geometry.coordinates;
+          map.getSource("single-point").setData(ev.result.geometry);
+          let coords = coordinates.toString();
+          getTaxlot(coords);
+          getZoning(coords);
+        });
+      });
+
+      // taxlot query
+      const getTaxlot = (loc) => {
+        var url =
+          "https://www.portlandmaps.com/arcgis/rest/services/Public/Taxlots/MapServer/0/query?where=1%3D1&text=&objectIds=&time=&geometry=" +
+          loc +
+          "&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&relationParam=&outFields=*&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=4326&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&returnDistinctValues=false&resultOffset=&resultRecordCount=&queryByDistance=&returnExtentsOnly=false&datumTransformation=&parameterValues=&rangeValues=&f=geojson";
+        var req = new XMLHttpRequest();
+        req.responseType = "json";
+        req.open("GET", url, true);
+        req.onload = function () {
+          var jsonResponse = req.response;
+          if (map.getLayer("taxlots")) {
+            map.getSource("taxlots").setData(jsonResponse);
+          } else {
+            map.addLayer({
+              id: "taxlots",
+              type: "fill",
+              slot: "middle",
+              source: {
+                type: "geojson",
+                data: jsonResponse,
+              },
+              layout: {},
+              paint: {
+                "fill-color": "#088",
+                "fill-opacity": 0.8,
+              },
+            });
+          }
+          map.addSource("eraser", {
+            type: "geojson",
+            data: turf.bboxPolygon(turf.bbox(jsonResponse)),
+          });
+          // create a centroid from the taxlot geometry
+          var centroid = turf.centroid(jsonResponse);
+          map.addSource("model", {
+            type: "geojson",
+            data: {
+              type: "Feature",
+              properties: {
+                "model-uri":
+                  "https://geografa.github.io/h4c/model/little_house.glb",
+              },
+              geometry: {
+                coordinates: centroid.geometry.coordinates,
+                type: "Point",
+              },
+            },
+          });
+          map.addLayer({
+            id: "eraser",
+            type: "clip",
+            source: "eraser",
+            layout: {
+              "clip-layer-types": ["symbol", "model"],
+            },
+          });
+          map.addLayer({
+            id: "bus",
+            type: "model",
+            source: "model",
+            minzoom: 15,
+            layout: {
+              "model-id": ["get", "model-uri"],
+            },
+            paint: {
+              //   "model-opacity": 1,
+              "model-rotation": [0.0, 0.0, 35.0],
+              //   "model-scale": [0.8, 0.8, 1.2],
+              //   "model-color-mix-intensity": 0,
+              //   "model-cast-shadows": true,
+              //   "model-emissive-strength": 0.8,
+            },
+          });
+        };
+        req.send();
+      };
+
+      // zoning query
+      const getZoning = (loc) => {
+        var url =
+          "https://www.portlandmaps.com/arcgis/rest/services/Public/Zoning/MapServer/3/query?where=1%3D1&geometry=" +
+          loc +
+          "&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&outSR=4326&f=geojson";
+        var req = new XMLHttpRequest();
+        req.responseType = "json";
+        req.open("GET", url, true);
+        req.onload = function () {
+          var jsonResponse = req.response;
+          if (map.getLayer("zoning")) {
+            map.getSource("zoning").setData(jsonResponse);
+            map.getSource("zoning-label").setData(jsonResponse);
+          } else {
+            // add zoning layer
+            map.addLayer({
+              id: "zoning",
+              type: "fill",
+              slot: "middle",
+              source: {
+                type: "geojson",
+                data: jsonResponse,
+              },
+              paint: {
+                "fill-color": "#088",
+                "fill-opacity": 0.25,
+              },
+            });
+
+            // add zoning label
+            map.addLayer({
+              id: "zoning-label",
+              type: "symbol",
+              slot: "middle",
+              source: {
+                type: "geojson",
+                data: jsonResponse,
+              },
+              layout: {
+                "text-field": "{ZONE}",
+                "text-size": 24,
+              },
+              paint: {
+                "text-halo-color": "#fff",
+                "text-halo-width": 2.75,
+              },
+            });
+            // when the zoning layer loads, and is clicked, log the properties of the clicked feature
+            map.on("click", "zoning", function (e) {
+              // where the zoning CMP matches the baseZones CMP, log the baseZones properties
+              baseZones.forEach((zone) => {
+                if (zone.CMP === e.features[0].properties.ZONE) {
+                  // add a popup with the baseZones properties
+                  new mapboxgl.Popup()
+                    .setLngLat(e.lngLat)
+                    .setHTML(
+                      `<h3>${zone.zone}</h3>
+                      <p><strong>Description:</strong> ${zone.description}</p>
+                      <p><strong>Allowable Uses:</strong> ${zone.allowableUses.join(
+                        ", "
+                      )}</p>
+                      <p><strong>Location:</strong> ${zone.location}</p>
+                      <p><strong>Max Height:</strong> ${zone.maxHeight}</p>
+                      ${
+                        zone.FAR
+                          ? `<p><strong>FAR:</strong> ${zone.FAR}</p>`
+                          : `<p><strong>FAR:</strong> Not applicable</p>`
+                      }
+                      ${
+                        zone.bonusProvisions
+                          ? `<p><strong>Bonus Provisions:</strong> ${zone.bonusProvisions}</p>`
+                          : `<p><strong>Bonus Provisions:</strong> Not eligible</p>`
+                      }
+                      <p><strong>Parking Restrictions:</strong> ${
+                        zone.parkingRestrictions
+                      }</p>`
+                    )
+                    .addTo(map);
+                }
+              });
+              console.log(e.features[0].properties);
+            });
+          }
+        };
+        req.send();
+      };
+    </script>
+  </body>
 </html>
