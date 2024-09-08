@@ -30,8 +30,59 @@
       }
       .mapboxgl-popup {
         max-width: 400px;
-        font: 12px/20px "Helvetica Neue", Arial, Helvetica, sans-serif;
+        font: 14px/20px "Helvetica Neue", Arial, Helvetica, sans-serif;
+        padding-bottom: 10px;
+        line-height: 2em;
       }
+      .mapboxgl-popup,
+      img {
+        max-width: 100%;
+      }
+      .mapboxgl-popup-content {
+        border-radius: 10px;
+        color: #ffffff;
+        background: #23646a;
+      }
+      .mapboxgl-popup-content img {
+        background-color: rgba(255, 255, 255, 1);
+        /* max-width: 66px; */
+        position: relative;
+        left: 0px;
+        margin: 10px 0px;
+        border: solid 0.5px #e7e0d4;
+        border-radius: 10px;
+      }
+      .mapboxgl-popup-content a {
+        color: #ffffff;
+        line-height: 2em;
+      }
+      .mapboxgl-popup-content h2,
+      p {
+        margin-bottom: 5px;
+      }
+      .mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
+        border-top-color: #23646a;
+      }
+      .mapboxgl-popup-anchor-top .mapboxgl-popup-tip {
+        border-bottom-color: #23646a;
+      }
+      .mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+        border-right-color: #23646a;
+      }
+      .mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+        border-left-color: #23646a;
+      }
+      .mapboxgl-popup-anchor-top-left .mapboxgl-popup-tip {
+        border-bottom-color: #23646a;
+      }
+      .mapboxgl-popup-anchor-top-right .mapboxgl-popup-tip {
+        border-bottom-color: #23646a;
+      }
+      .mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-tip {
+        border-top-color: #23646a;
+      }
+      .mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-tip {
+        border-top-color: #23646a;
     </style>
 
     <!-- Load the `mapbox-gl-geocoder` plugin. -->
@@ -64,7 +115,7 @@
         marker: false,
         types: "address",
         proximity: "ip",
-        zoom: 17,
+        zoom: 18.5,
         placeholder: "Try: 3417 NE 11th Ave, Portland, OR 97212",
       });
 
@@ -768,15 +819,29 @@
               },
             });
           }
-          map.addSource("eraser", {
-            type: "geojson",
-            data: turf.bboxPolygon(turf.bbox(jsonResponse)),
-          });
+          if (map.getLayer("eraser")) {
+            map.getSource("eraser").setData(jsonResponse);
+          } else {
+            map.addSource("eraser", {
+              type: "geojson",
+              data: turf.bboxPolygon(turf.bbox(jsonResponse)),
+            });
+            map.addLayer({
+              id: "eraser",
+              type: "clip",
+              source: "eraser",
+              layout: {
+                "clip-layer-types": ["symbol", "model"],
+              },
+            });
+          }
           // create a centroid from the taxlot geometry
           var centroid = turf.centroid(jsonResponse);
-          map.addSource("model", {
-            type: "geojson",
-            data: {
+
+          // if there's already a model source, update it with the new data
+          // otherwise, create a new model source with the new data
+          if (map.getSource("model")) {
+            map.getSource("model").setData({
               type: "Feature",
               properties: {
                 "model-uri":
@@ -786,33 +851,40 @@
                 coordinates: centroid.geometry.coordinates,
                 type: "Point",
               },
-            },
-          });
-          map.addLayer({
-            id: "eraser",
-            type: "clip",
-            source: "eraser",
-            layout: {
-              "clip-layer-types": ["symbol", "model"],
-            },
-          });
-          map.addLayer({
-            id: "bus",
-            type: "model",
-            source: "model",
-            minzoom: 15,
-            layout: {
-              "model-id": ["get", "model-uri"],
-            },
-            paint: {
-              //   "model-opacity": 1,
-              "model-rotation": [0.0, 0.0, 35.0],
-              //   "model-scale": [0.8, 0.8, 1.2],
-              //   "model-color-mix-intensity": 0,
-              //   "model-cast-shadows": true,
-              //   "model-emissive-strength": 0.8,
-            },
-          });
+            });
+          } else {
+            map.addSource("model", {
+              type: "geojson",
+              data: {
+                type: "Feature",
+                properties: {
+                  "model-uri":
+                    "https://geografa.github.io/h4c/model/little_house.glb",
+                },
+                geometry: {
+                  coordinates: centroid.geometry.coordinates,
+                  type: "Point",
+                },
+              },
+            });
+            map.addLayer({
+              id: "house",
+              type: "model",
+              source: "model",
+              minzoom: 15,
+              layout: {
+                "model-id": ["get", "model-uri"],
+              },
+              paint: {
+                //   "model-opacity": 1,
+                "model-rotation": [0, 0, 90],
+                "model-scale": [4, 4, 4],
+                //   "model-color-mix-intensity": 0,
+                //   "model-cast-shadows": true,
+                //   "model-emissive-strength": 0.8,
+              },
+            });
+          }
         };
         req.send();
       };
