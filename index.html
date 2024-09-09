@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Query TLIDs</title>
+    <title>Floor Area Ratio (FAR) Calculator, Portland OR</title>
     <meta
       name="viewport"
       content="initial-scale=1,maximum-scale=1,user-scalable=no"
@@ -104,11 +104,25 @@
       var map = new mapboxgl.Map({
         container: "map",
         style: "mapbox://styles/mapbox/standard",
-        zoom: 14,
-        center: [-122.66497032017605, 45.55411587421071],
-        pitch: 35,
-        hash: true,
-        // bearing: 350
+        zoom: 17.6,
+        center: [-122.65639719938969, 45.547187759689336],
+        pitch: 61,
+        bearing: 60,
+      });
+
+      // log the center, pitch, and bearing of the map
+      map.on("move", function () {
+        console.log(
+          "zoom: " +
+            Math.round(map.getZoom()) +
+            "," +
+            "center: " +
+            [map.getCenter().lng + "," + map.getCenter().lat] +
+            ", pitch: " +
+            Math.round(map.getPitch()) +
+            ", bearing: " +
+            Math.round(map.getBearing())
+        );
       });
 
       var geocoder = new MapboxGeocoder({
