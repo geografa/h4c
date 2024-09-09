@@ -600,9 +600,9 @@
               ["zoom"],
               "circle-11",
               10,
-              "town-hall-11",
+              "historic-landmark",
               22,
-              "town-hall-15",
+              "historic-landmark",
             ],
             "icon-size": [
               "interpolate",
@@ -657,7 +657,7 @@
           },
           "source-layer": "Conservation_Landmarks-2j0ujw",
           layout: {
-            "icon-image": "monument-15",
+            "icon-image": "conservation-landmark",
             "icon-allow-overlap": true,
           },
         });
@@ -720,23 +720,23 @@
         });
 
         // add geocoder result
-        map.addSource("single-point", {
-          type: "geojson",
-          data: {
-            type: "FeatureCollection",
-            features: [],
-          },
-        });
+        // map.addSource("single-point", {
+        //   type: "geojson",
+        //   data: {
+        //     type: "FeatureCollection",
+        //     features: [],
+        //   },
+        // });
 
-        map.addLayer({
-          id: "point",
-          source: "single-point",
-          type: "circle",
-          paint: {
-            "circle-radius": 5,
-            "circle-color": "#f30",
-          },
-        });
+        // map.addLayer({
+        //   id: "point",
+        //   source: "single-point",
+        //   type: "circle",
+        //   paint: {
+        //     "circle-radius": 5,
+        //     "circle-color": "#f30",
+        //   },
+        // });
 
         // Create a popup, but don't add it to the map yet.
         var popup = new mapboxgl.Popup({
@@ -786,7 +786,7 @@
         // add the taxlots.
         geocoder.on("result", function (ev) {
           var coordinates = ev.result.geometry.coordinates;
-          map.getSource("single-point").setData(ev.result.geometry);
+          // map.getSource("single-point").setData(ev.result.geometry);
           let coords = coordinates.toString();
           getTaxlot(coords);
           getZoning(coords);
