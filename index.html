@@ -83,6 +83,7 @@
       }
       .mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-tip {
         border-top-color: #23646a;
+      }
     </style>
 
     <!-- Load the `mapbox-gl-geocoder` plugin. -->
@@ -96,8 +97,10 @@
   <body>
     <div id="map"></div>
     <script>
+      /* mapboxgl.accessToken =
+        "pk.eyJ1IjoiZ3JhZmEiLCJhIjoiY20wdTdlcTM3MTRsZDJxcGxmcW85MzQxMCJ9.H-wLHlLXdbtIQ9R1zsDuJg"; // prod*/
       mapboxgl.accessToken =
-        "pk.eyJ1IjoiZ3JhZmEiLCJhIjoiY2ptYjNtZWxnMDBrdDNwbnVicGJzOWg2NyJ9.9OulyCe3kEqMAXPbx1mKUA";
+        "pk.eyJ1IjoiZ3JhZmEiLCJhIjoiY2lvOHdtcDVlMDMwN3ZibHpucHczemQ4dSJ9.xfu_0kXfz1Nymp2LIyLS4Q";
       var map = new mapboxgl.Map({
         container: "map",
         style: "mapbox://styles/mapbox/standard",
@@ -946,7 +949,7 @@
                   new mapboxgl.Popup()
                     .setLngLat(e.lngLat)
                     .setHTML(
-                      `<h3>${zone.zone}</h3>
+                      `<h2>${zone.zone}</h2>
                       <p><strong>Description:</strong> ${zone.description}</p>
                       <p><strong>Allowable Uses:</strong> ${zone.allowableUses.join(
                         ", "
